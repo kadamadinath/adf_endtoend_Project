@@ -1,0 +1,127 @@
+{
+	"name": "dataServing",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "ls_ADLS_Gen2",
+						"type": "LinkedServiceReference"
+					},
+					"name": "DimAirline"
+				},
+				{
+					"linkedService": {
+						"referenceName": "ls_ADLS_Gen2",
+						"type": "LinkedServiceReference"
+					},
+					"name": "FactBooking"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "ls_ADLS_Gen2",
+						"type": "LinkedServiceReference"
+					},
+					"name": "GoldWriting"
+				}
+			],
+			"transformations": [
+				{
+					"name": "joinAirline"
+				},
+				{
+					"name": "selectCol"
+				},
+				{
+					"name": "aggregateAirline"
+				},
+				{
+					"name": "windowRank"
+				},
+				{
+					"name": "alterRowGold"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          airline_id as short,",
+				"          airline_name as string,",
+				"          country as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'silver-adf',",
+				"     folderPath: 'DimAirline') ~> DimAirline",
+				"source(output(",
+				"          booking_id as integer,",
+				"          passenger_id as integer,",
+				"          flight_id as integer,",
+				"          airline_id as integer,",
+				"          origin_airport_id as integer,",
+				"          destination_airport_id as integer,",
+				"          booking_date as date,",
+				"          ticket_cost as integer,",
+				"          flight_duration_mins as integer,",
+				"          checkin_status as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'silver-adf',",
+				"     folderPath: 'FactBooking') ~> FactBooking",
+				"FactBooking, DimAirline join(FactBooking@airline_id == DimAirline@airline_id,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinAirline",
+				"joinAirline select(mapColumn(",
+				"          booking_id,",
+				"          passenger_id,",
+				"          flight_id,",
+				"          airline_id = FactBooking@airline_id,",
+				"          origin_airport_id,",
+				"          destination_airport_id,",
+				"          booking_date,",
+				"          ticket_cost,",
+				"          flight_duration_mins,",
+				"          checkin_status,",
+				"          airline_name,",
+				"          country",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectCol",
+				"selectCol aggregate(groupBy(airline_name),",
+				"     total_Sales = sum(ticket_cost)) ~> aggregateAirline",
+				"aggregateAirline window(desc(total_Sales, true),",
+				"     rank = denseRank()) ~> windowRank",
+				"windowRank alterRow(upsertIf(1>0)) ~> alterRowGold",
+				"alterRowGold sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'gold-adf',",
+				"     folderPath: 'businessView',",
+				"     overwrite: true,",
+				"     mergeSchema: false,",
+				"     autoCompact: false,",
+				"     optimizedWrite: false,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['total_Sales'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> GoldWriting"
+			]
+		}
+	}
+}
