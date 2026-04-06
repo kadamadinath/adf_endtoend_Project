@@ -1,0 +1,27 @@
+{
+	"name": "ds_lastload",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_ADLS_Gen2",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "lastload.json",
+				"folderPath": "lastload",
+				"fileSystem": "bronze-adf"
+			}
+		},
+		"schema": {
+			"type": "object",
+			"properties": {
+				"lastload": {
+					"type": "string"
+				}
+			}
+		}
+	}
+}
