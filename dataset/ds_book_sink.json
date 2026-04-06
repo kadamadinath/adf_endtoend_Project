@@ -1,0 +1,20 @@
+{
+	"name": "ds_book_sink",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_ADLS_Gen2",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "sql",
+				"fileSystem": "bronze-adf"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	}
+}
