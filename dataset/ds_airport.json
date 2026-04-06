@@ -1,0 +1,20 @@
+{
+	"name": "ds_airport",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_ADLS_Gen2",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "DimAirport.json",
+				"folderPath": "API",
+				"fileSystem": "bronze-adf"
+			}
+		},
+		"schema": {}
+	}
+}
